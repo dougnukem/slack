@@ -88,11 +88,6 @@ type Edited struct {
 	Timestamp string `json:"ts,omitempty"`
 }
 
-// Event contains the event type
-type Event struct {
-	Type string `json:"type,omitempty"`
-}
-
 // Ping contains information about a Ping Event
 type Ping struct {
 	ID   int    `json:"id"`

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"reflect"
 	"time"
 
 	"golang.org/x/net/websocket"
@@ -330,16 +329,7 @@ func (rtm *RTM) handlePong(event json.RawMessage) {
 // correct struct then this sends an UnmarshallingErrorEvent to the
 // IncomingEvents channel.
 func (rtm *RTM) handleEvent(typeStr string, event json.RawMessage) {
-	v, exists := eventMapping[typeStr]
-	if !exists {
-		rtm.Debugf("RTM Error, received unmapped event %q: %s\n", typeStr, string(event))
-		err := fmt.Errorf("RTM Error: Received unmapped event %q: %s\n", typeStr, string(event))
-		rtm.IncomingEvents <- RTMEvent{"unmarshalling_error", &UnmarshallingErrorEvent{err}}
-		return
-	}
-	t := reflect.TypeOf(v)
-	recvEvent := reflect.New(t).Interface()
-	err := json.Unmarshal(event, recvEvent)
+	recvEvent, err := eventMapping.Unmarshal(event)
 	if err != nil {
 		rtm.Debugf("RTM Error, could not unmarshall event %q: %s\n", typeStr, string(event))
 		err := fmt.Errorf("RTM Error: Could not unmarshall event %q: %s\n", typeStr, string(event))
@@ -347,87 +337,4 @@ func (rtm *RTM) handleEvent(typeStr string, event json.RawMessage) {
 		return
 	}
 	rtm.IncomingEvents <- RTMEvent{typeStr, recvEvent}
-}
-
-// eventMapping holds a mapping of event names to their corresponding struct
-// implementations. The structs should be instances of the unmarshalling
-// target for the matching event type.
-var eventMapping = map[string]interface{}{
-	"message":         MessageEvent{},
-	"presence_change": PresenceChangeEvent{},
-	"user_typing":     UserTypingEvent{},
-
-	"channel_marked":          ChannelMarkedEvent{},
-	"channel_created":         ChannelCreatedEvent{},
-	"channel_joined":          ChannelJoinedEvent{},
-	"channel_left":            ChannelLeftEvent{},
-	"channel_deleted":         ChannelDeletedEvent{},
-	"channel_rename":          ChannelRenameEvent{},
-	"channel_archive":         ChannelArchiveEvent{},
-	"channel_unarchive":       ChannelUnarchiveEvent{},
-	"channel_history_changed": ChannelHistoryChangedEvent{},
-
-	"dnd_updated":      DNDUpdatedEvent{},
-	"dnd_updated_user": DNDUpdatedEvent{},
-
-	"im_created":         IMCreatedEvent{},
-	"im_open":            IMOpenEvent{},
-	"im_close":           IMCloseEvent{},
-	"im_marked":          IMMarkedEvent{},
-	"im_history_changed": IMHistoryChangedEvent{},
-
-	"group_marked":          GroupMarkedEvent{},
-	"group_open":            GroupOpenEvent{},
-	"group_joined":          GroupJoinedEvent{},
-	"group_left":            GroupLeftEvent{},
-	"group_close":           GroupCloseEvent{},
-	"group_rename":          GroupRenameEvent{},
-	"group_archive":         GroupArchiveEvent{},
-	"group_unarchive":       GroupUnarchiveEvent{},
-	"group_history_changed": GroupHistoryChangedEvent{},
-
-	"file_created":         FileCreatedEvent{},
-	"file_shared":          FileSharedEvent{},
-	"file_unshared":        FileUnsharedEvent{},
-	"file_public":          FilePublicEvent{},
-	"file_private":         FilePrivateEvent{},
-	"file_change":          FileChangeEvent{},
-	"file_deleted":         FileDeletedEvent{},
-	"file_comment_added":   FileCommentAddedEvent{},
-	"file_comment_edited":  FileCommentEditedEvent{},
-	"file_comment_deleted": FileCommentDeletedEvent{},
-
-	"pin_added":   PinAddedEvent{},
-	"pin_removed": PinRemovedEvent{},
-
-	"star_added":   StarAddedEvent{},
-	"star_removed": StarRemovedEvent{},
-
-	"reaction_added":   ReactionAddedEvent{},
-	"reaction_removed": ReactionRemovedEvent{},
-
-	"pref_change": PrefChangeEvent{},
-
-	"team_join":              TeamJoinEvent{},
-	"team_rename":            TeamRenameEvent{},
-	"team_pref_change":       TeamPrefChangeEvent{},
-	"team_domain_change":     TeamDomainChangeEvent{},
-	"team_migration_started": TeamMigrationStartedEvent{},
-
-	"manual_presence_change": ManualPresenceChangeEvent{},
-
-	"user_change": UserChangeEvent{},
-
-	"emoji_changed": EmojiChangedEvent{},
-
-	"commands_changed": CommandsChangedEvent{},
-
-	"email_domain_changed": EmailDomainChangedEvent{},
-
-	"bot_added":   BotAddedEvent{},
-	"bot_changed": BotChangedEvent{},
-
-	"accounts_changed": AccountsChangedEvent{},
-
-	"reconnect_url": ReconnectUrlEvent{},
 }
